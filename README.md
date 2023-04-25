@@ -20,16 +20,23 @@
 ## Demo
 https://user-images.githubusercontent.com/83769253/234326908-57c56b14-d318-49a6-b716-88be964c333d.mp4
 
+---
+
+#### Before (duration: 33s): 
+https://user-images.githubusercontent.com/83769253/234356157-d30e7fc4-8b0f-4970-8748-d23477dfeb54.mp4
+#### After (duration: 20s):
+https://user-images.githubusercontent.com/83769253/234356041-6d667c48-6275-481c-8918-e79191aeac4c.mp4
+
+---
+
+#### Before (duration: 2min 25sec):
+https://user-images.githubusercontent.com/83769253/234360164-c8222aab-c71d-4818-9200-e4d116bf6ea5.mp4
+#### After (duration: 1min 38sec):
+https://user-images.githubusercontent.com/83769253/234360186-4cc8291f-f425-4102-98f5-f1a5009a7a83.mp4
+
+
 ## Known Issues
 - Silence Remover may not work with certain file types, such as webm files, works fine with mp4 and mkv files.
 - If your video file has unusual characters in its file name(like double or single quotes), Silence Remover may encounter errors.
-
-= Before: 
-
-https://user-images.githubusercontent.com/83769253/234352101-74d31493-a318-4b2d-9dbc-9ae747273279.mp4
-
-
-- After: 
-
 
 
