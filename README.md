@@ -12,7 +12,7 @@
 1. Install Python 3.6 or higher
 
 2.       pip install auto-editor
-3. Go to the [releases](https://github.com/ashish-um/Silence-Remover-GUI/releases/tag/first) page on GitHub.
+3. Go to the [releases](https://github.com/ashish-um/Silence-Remover-GUI/releases/tag/main_realease) page on GitHub.
 4. Download the latest main.rar file.
 5. Extract and run main.exe inside the extracted folder
     
