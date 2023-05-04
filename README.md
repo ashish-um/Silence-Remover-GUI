@@ -36,7 +36,7 @@ https://user-images.githubusercontent.com/83769253/234360186-4cc8291f-f425-4102-
 
 
 ## Known Issues
-- Silence Remover may not work with certain file types, such as webm files, works fine with mp4 and mkv files.
 - If your video file has unusual characters in its file name(like double or single quotes), Silence Remover may encounter errors.
+- I haven't tried it but maybe if you have a different ffmpeg version in your environment variable path, the app may use that and the rotation buttons may not work
 
 
