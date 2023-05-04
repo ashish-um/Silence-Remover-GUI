@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog
 import customtkinter as ctk
-import pyautogui, psutil, subprocess, tempfile, glob, shutil, ctypes, random
+import psutil, subprocess, tempfile, glob, shutil, ctypes, random, os, math, re, time
 from threading import Thread
 from PIL import Image
 from CTkMessagebox import CTkMessagebox
@@ -10,7 +10,7 @@ from CTkMessagebox import CTkMessagebox
 class App():
     def __init__(self):
         self.root = ctk.CTk()
-        self.root.geometry('1150x730+50+20')
+        self.root.geometry('1150x650+50+20')
         self.root.title("Silence Remover App")
         self.mainframe = ctk.CTkScrollableFrame(self.root)
         self.mainframe.pack(fill='both', expand=True)
@@ -64,10 +64,17 @@ class App():
         self.cmd_Entry = ctk.CTkEntry(self.mainframe)
         self.cmd_Entry.grid(row=5, column=0, padx=(100,20), sticky='We')
 
-        #Submit Button
-        self.SubmitButton = ctk.CTkButton(self.mainframe, text="RUN", command=self.MainCutting)
-        self.SubmitButton.grid(row=6, column=0, pady=10, sticky="s")
+        #Run Button
+        self.SubmitButton = ctk.CTkButton(self.mainframe, text="RUN", fg_color="green", hover_color='darkgreen', command=self.MainCutting)
+        self.SubmitButton.grid(row=6, column=0, padx=(30,0),pady=10, sticky="w")
 
+        #Rotate ↺ aniticlockwise button
+        self.AntiClockRotateButton = ctk.CTkButton(self.mainframe, fg_color="#643A6B", hover_color='#5F264A', text="Rotate ↺", command=lambda: self.Rotate("2"))
+        self.AntiClockRotateButton.grid(row=6, column=0, padx=(230,0),pady=10, columnspan=2, sticky="w")
+
+        #Rotate ↻ clockwise button
+        self.ClockRotateButton = ctk.CTkButton(self.mainframe, fg_color="#643A6B", hover_color='#5F264A', text="Rotate ↻", command=lambda: self.Rotate("1"))
+        self.ClockRotateButton.grid(row=6, column=0, padx=(430,0), columnspan=2, pady=10, sticky="w")
 
         #CANCEL BUTTON
         self.CancelButton = ctk.CTkButton(self.mainframe, text="Cancel", command=self.stop_process)
@@ -85,13 +92,15 @@ class App():
         self.ProgressBarPercentage = ctk.CTkLabel(self.mainframe, text='0%', font=("", 15, "bold"))
         self.ProgressBarPercentage.grid(row=5, column=1, sticky='e', padx=(0,20))
 
-        to_disable = [self.ffmpegOutputText, self.sampleRateCheck, self.fpsCheck, self.setFileName, self.cmd_Text, self.cmd_Entry, self.setFileName_textField, self.SubmitButton, self.CancelButton, self.terminalOutputDisplay]
+        to_disable = [self.ffmpegOutputText, self.sampleRateCheck, self.fpsCheck, self.setFileName, self.cmd_Text, self.cmd_Entry, self.setFileName_textField, self.SubmitButton,self.AntiClockRotateButton,self.ClockRotateButton, self.CancelButton, self.terminalOutputDisplay]
 
         for i in to_disable:
             i.configure(state="disabled")
 
         #start export success=false
         self.export = False
+
+
 
         self.cmdoptions = '--no-open'
         #SET IT ON TOP ON STARTUP
@@ -103,6 +112,7 @@ class App():
         self.root.after_idle(self.root.attributes, '-topmost', False)
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_closeing)
+
         self.root.mainloop()
         return
     
@@ -130,11 +140,10 @@ class App():
         elif not sampleVarVal:
             self.cmdoptions = self.cmdoptions.replace(' --sample-rate 48000', '')
 
-        self.command = f'auto-editor "{self.filename}" {self.cmdoptions} --debug -o "{self.filelocation+self.outputfilename}.mp4"'
+        self.command = f'auto-editor "{self.filename}" {self.cmdoptions} --debug -o "{self.filelocation+self.outputfilename}.{self.file_extension}"'
         self.cmd_Entry.insert(tk.END, self.command)
 
         self.cmd_Entry.configure(state='readonly')
-
 
     def cmdFileNameChange(self, *args):
         # Get the text from the Entry widget and update the Label text
@@ -142,14 +151,14 @@ class App():
         self.cmd_Entry.configure(state='normal')
         self.cmd_Entry.delete(0, tk.END)
         self.outputfilename = (self.updateFileNameEntry_var.get())
-        self.command = f'auto-editor "{self.filename}" {self.cmdoptions} --debug -o "{self.filelocation+self.outputfilename}.mp4"'
+        self.command = f'auto-editor "{self.filename}" {self.cmdoptions} --debug -o "{self.filelocation+self.outputfilename}.{self.file_extension}"'
         self.cmd_Entry.insert(tk.END, self.command)
         self.cmd_Entry.configure(state='readonly')
 
     def BrowseFiles(self):
-        self.filename = filedialog.askopenfilename(initialdir = "/",title = "Select a File",filetypes = (("Media Files",("*.MP4*","*.MKV*")),("all files","*.*")))
+        self.filename = filedialog.askopenfilename(title = "Select a File",filetypes = (("Media Files",("*.MP4*","*.MKV*")),("all files","*.*")))
         if(self.filename != ""):
-            to_enable = [self.sampleRateCheck, self.fpsCheck, self.setFileName, self.cmd_Text, self.cmd_Entry, self.setFileName_textField, self.SubmitButton]
+            to_enable = [self.sampleRateCheck, self.fpsCheck, self.setFileName, self.cmd_Text, self.cmd_Entry, self.setFileName_textField, self.SubmitButton, self.AntiClockRotateButton,self.ClockRotateButton]
             for i in to_enable:
                 i.configure(state='normal')
             # self.ffmpegOutputText.delete("1", "END")
@@ -157,22 +166,25 @@ class App():
             self.setFileName.delete(0, tk.END)
             self.filelocation = self.filename.replace((self.filename.split("/")[-1]), "")
             newlist = (self.filename.split("/")[-1]).split(".")
+            print(newlist)
+            self.file_extension = newlist[1]
             self.outputfilename = newlist[0]+" [Alter]"
+            # print(self.outputfilename)
             self.setFileName.insert(0, self.outputfilename)
-
+            # print(self.outputfilename)
             #Change column weight 
             self.mainframe.columnconfigure(1, weight=4)
                         
             self.ffmpegOutputText.configure(state='normal')
             # print(filename)
-            cmd =[r'ffmpeg.exe', '-hide_banner', '-i', self.filename]
+            cmd =['ffmpeg', '-hide_banner', '-i', self.filename]
             output = subprocess.run(cmd, stderr=subprocess.PIPE, text=True, shell=True)
             self.ffmpegOutputText.delete("1.0", "end")
             self.ffmpegOutputText.insert(tk.END, output.stderr)
             self.cmd_Entry.delete(0,tk.END)
             self.cmd_Entry.insert(tk.END,  f'auto-editor "{self.filename}" {self.cmdoptions} --debug -o "{self.filelocation+self.setFileName.get()}"')
             self.cmd_Entry.configure(state='readonly')
-            self.command = f'auto-editor.exe "{self.filename}" {self.cmdoptions} --debug -o "{self.filelocation+self.setFileName.get()}.mp4"'
+            self.command = f'auto-editor "{self.filename}" {self.cmdoptions} --debug -o "{self.filelocation+self.setFileName.get()}"'
 
     def DelTemp(self):
         path = tempfile.gettempdir()
@@ -185,7 +197,13 @@ class App():
             self.terminalOutputDisplay.insert(tk.END, "Removing Temp File: "+f+"\n")
             # print(f)
             shutil.rmtree(f)
-    
+
+    def open(self, filename):
+        if os.path.exists(filename):
+            subprocess.Popen(r'explorer /select,"{}"'.format(os.path.abspath(filename)))
+        else:
+            print("File not found!")
+
     def pip_install(self):
         # output_lines = []
         while True:
@@ -194,11 +212,7 @@ class App():
             if output == '' and self.process.poll() is not None:
                 #OUTPUT
                 self.terminalOutputDisplay.configure(state='normal')
-                # self.terminalOutputDisplay.insert(tk.END, '\n'.join(output_lines))
 
-                # stdout, stderr = self.process.communicate()
-                # print('\n'.join(output_lines))
-                
                 if self.process.returncode == 0:
                     #SUCCESS
                     #Progressbar Set
@@ -206,12 +220,13 @@ class App():
                     self.ProgressBar.configure(mode='determinate')
                     self.ProgressBar.set(1)
                     self.ProgressBarPercentage.configure(text="100%")
-                    # self.terminalOutputDisplay.insert(tk.END,self.process.stdout.read().decode('utf-8'))
                     #MESSAGE
                     CTkMessagebox(title="Success!", message="auto-editor successfully installed.", icon="check", option_1="OK", fade_in_duration=1)
                     self.SubmitButton.configure(state='normal')
                     self.ChooseFileButton.configure(state='normal')
                     self.CancelButton.configure(state='disabled')
+                    self.AntiClockRotateButton.configure(state='normal')
+                    self.ClockRotateButton.configure(state='normal')
                     
                 else:
                     #Failed
@@ -225,6 +240,8 @@ class App():
                         self.CancelButton.configure(state='normal')
                         self.ChooseFileButton.configure(state='disabled')
                         self.SubmitButton.configure(state='disabled')
+                        self.AntiClockRotateButton.configure(state='disabled')
+                        self.ClockRotateButton.configure(state='disabled')
                         #RESET TERMINAL OUTPUT
                         self.terminalOutputDisplay.configure(state='normal')
                         self.terminalOutputDisplay.delete('1.0', 'end')
@@ -251,6 +268,8 @@ class App():
                         self.SubmitButton.configure(state='normal')
                         self.ChooseFileButton.configure(state='normal')
                         self.CancelButton.configure(state='disabled')
+                        self.AntiClockRotateButton.configure(state='normal')
+                        self.ClockRotateButton.configure(state='normal')
                     
 
                 print("BREAKING BAD", str(self.process.returncode))
@@ -261,7 +280,7 @@ class App():
                 self.terminalOutputDisplay.insert(tk.END,output2.strip() + "\n")
 
             self.terminalOutputDisplay.see(tk.END)
-            self.root.after(100)
+            time.sleep(0.1)
 
     def check_for_auto_editor(self):
         self.proc_output = subprocess.run("auto-editor", stderr=subprocess.PIPE, shell=True)
@@ -295,6 +314,136 @@ class App():
             self.ChooseFileButton.configure(state='normal')
             self.CancelButton.configure(state='disabled')
          
+    def Rotate(self, param):
+        self.end_it = False
+        print(param)
+        # return
+        #reset progress bar
+        self.ProgressBar.configure(mode='determinate')
+        self.ProgressBar.set(0)
+        self.ProgressBar.configure(progress_color=self.prog_color)
+        self.ProgressBarPercentage.configure(text="0%")
+        #Reset Cancel button function
+        self.end_it = False
+
+        #ENALBLE AND DIABLE BUTTONS
+        self.CancelButton.configure(state='normal')
+        self.ChooseFileButton.configure(state='disabled')
+        self.SubmitButton.configure(state='disabled')
+        self.AntiClockRotateButton.configure(state='disabled')
+        self.ClockRotateButton.configure(state='disabled')
+        
+        #RESET TERMINAL TEXT
+        self.terminalOutputDisplay.configure(state='normal')
+        self.terminalOutputDisplay.delete('1.0', 'end')
+        self.DelTemp()
+        self.terminalOutputDisplay.configure(state='disabled')
+
+        # Run FFmpeg to get the metadata of the video
+        result = subprocess.run(['ffmpeg', '-i', self.filename], stderr=subprocess.PIPE, stdout=subprocess.PIPE, shell=True)
+
+        # Convert the result to a string
+        result_str = result.stderr.decode('utf-8')
+        
+        # Find the duration and frame rate in the output
+        duration_str = re.search(r"Duration: (\d{2}):(\d{2}):(\d{2}\.\d{2})", result_str)
+        fps_str = re.search(r"(\d+(?:\.\d+)?) fps", result_str).group(1)
+
+        # Calculate duration in seconds
+        hours, minutes, seconds = map(float, duration_str.groups())
+        print(f"hours: {hours}, minutes: {minutes}, seconds: {seconds}")
+        duration_secs = hours * 3600 + minutes * 60 + seconds
+
+        # Print the duration and frame rate
+        print(f"Duration: {duration_secs} seconds")
+        print(f"Frame rate: {fps_str} fps")
+        print(f"total frames: {(float(fps_str)*int(duration_secs))}")
+        self.total_frames = math.floor(float(fps_str)*int(duration_secs))
+        print(f"total math floor frames: {math.floor(float(fps_str)*int(duration_secs))}")
+
+        #check if file exists
+        self.rotatefilename= f"{self.filelocation+self.setFileName.get()}[rotated].{self.file_extension}"
+        for i in range(40):
+            if os.path.isfile(self.rotatefilename):
+                print("Exists")
+                self.rotatefilename = f"{self.filelocation+self.setFileName.get()}[rotated]({i}).{self.file_extension}"
+            else:
+                break
+                
+        self.rotatecmd = f'ffmpeg -i "{self.filename}" -y -progress pipe:1 -vf "transpose={param}" "{self.rotatefilename}"'
+        
+        
+        # print(self.rotatecmd)
+        self.terminalOutputDisplay.configure(state='normal')
+
+        self.process = subprocess.Popen(self.rotatecmd, stdout=subprocess.PIPE, shell=True)
+        self.process_thread = Thread(target=self.run_process)
+        self.process_thread.start()
+            
+        self.update_thread = Thread(target=self.Rotateffmpeg)
+        self.update_thread.start()
+        pass
+
+    def Rotateffmpeg(self):
+        while True:
+            output = self.process.stdout.readline().decode('utf-8')
+
+            if (output == '' and self.process.poll() is not None) or (self.end_it):
+                self.terminalOutputDisplay.configure(state='normal')
+                self.terminalOutputDisplay.insert(tk.END, "Breaking Bad" + "\n")
+                self.terminalOutputDisplay.configure(state='disabled')
+                self.terminalOutputDisplay.see(tk.END)
+                self.SubmitButton.configure(state='normal')
+                self.ChooseFileButton.configure(state='normal')
+                self.CancelButton.configure(state='disabled')
+                self.AntiClockRotateButton.configure(state='normal')
+                self.ClockRotateButton.configure(state='normal')
+                # self.process_thread.termina
+                try:
+                    self.process_thread.join()
+                    self.update_thread.join()
+                except:
+                    pass
+                
+                #PROGRESS ERROR/SUCESS
+                self.ProgressBar.stop()
+                self.ProgressBar.configure(mode='determinate')
+                self.ProgressBar.set(1)  
+                if self.process.returncode != 0:
+                    #ERROR
+                    self.ProgressBar.configure(progress_color="red") 
+                    self.ProgressBarPercentage.configure(text="0%")            
+                    CTkMessagebox(title="Error", message="Something went wrong!!!", icon="cancel")
+                    if os.path.exists(self.rotatefilename):
+                        os.remove(self.rotatefilename)
+
+                else:
+                    #SUCCESS
+                    self.ProgressBarPercentage.configure(text="100%")
+                    msg = CTkMessagebox(title="SUCCESS!", message="Video successfully saved.", icon="check", option_1="Open",  option_2="OK", fade_in_duration=1)
+                    if msg.get()=="Open":
+                        self.open(self.rotatefilename)
+                print("Breaking bad")
+                break
+            
+            strippedOut = output.strip()
+
+            self.terminalOutputDisplay.configure(state='normal')
+            self.terminalOutputDisplay.insert(tk.END, strippedOut + "\n")
+            if "frame=" in strippedOut:
+                try:
+                    deb_frame = int(strippedOut.split("=")[-1])
+                    self.ProgressBar.set(deb_frame/(self.total_frames))
+                    self.ProgressBarPercentage.configure(text=str(int((deb_frame/(self.total_frames))*100))+"%")
+                except:
+                    pass
+                print(strippedOut)
+                
+            
+            self.terminalOutputDisplay.see(tk.END)
+            self.terminalOutputDisplay.configure(state='disabled')
+            time.sleep(0.05)
+            #self.root.after(1000) update every 100ms
 
     def MainCutting(self): 
         #reset progress bar
@@ -302,12 +451,17 @@ class App():
         self.ProgressBar.set(0)
         self.ProgressBar.configure(progress_color=self.prog_color)
         self.ProgressBarPercentage.configure(text="0%")
+
+        #Reset export and cancel button functions
         self.export = False
+        self.end_it = False
 
         #ENALBLE AND DIABLE BUTTONS
         self.CancelButton.configure(state='normal')
         self.ChooseFileButton.configure(state='disabled')
         self.SubmitButton.configure(state='disabled')
+        self.AntiClockRotateButton.configure(state='disabled')
+        self.ClockRotateButton.configure(state='disabled')
         
         #RESET TERMINAL TEXT
         self.terminalOutputDisplay.configure(state='normal')
@@ -332,12 +486,16 @@ class App():
         self.SubmitButton.configure(state='normal')
         self.ChooseFileButton.configure(state='normal')
         self.CancelButton.configure(state='disabled')
+        self.AntiClockRotateButton.configure(state='normal')
+        self.ClockRotateButton.configure(state='normal')
 
         # Killing process
         # self.process.terminate()
+        self.end_it = True
         Cmdprocess = psutil.Process(self.process.pid)
         for proc in Cmdprocess.children(recursive=True):
             proc.kill()
+
 
     def run_process(self):     
         self.process.wait()
@@ -347,7 +505,7 @@ class App():
         FrameCount = 0
         while True:
             output = self.process.stderr.readline().decode('utf-8')
-            if output == '' and self.process.poll() is not None:
+            if (output == '' and self.process.poll() is not None) or self.end_it:
                 self.terminalOutputDisplay.configure(state='normal')
                 self.terminalOutputDisplay.insert(tk.END, "Breaking Bad" + "\n")
                 self.terminalOutputDisplay.configure(state='disabled')
@@ -355,6 +513,8 @@ class App():
                 self.SubmitButton.configure(state='normal')
                 self.ChooseFileButton.configure(state='normal')
                 self.CancelButton.configure(state='disabled')
+                self.AntiClockRotateButton.configure(state='normal')
+                self.ClockRotateButton.configure(state='normal')
                 # self.process_thread.termina
                 try:
                     self.process_thread.join()
@@ -378,7 +538,12 @@ class App():
                 else:
                     #SUCCESS
                     self.ProgressBarPercentage.configure(text="100%")
-                    CTkMessagebox(title="SUCCESS!", message="Video successfully saved.", icon="check", option_1="OK", fade_in_duration=1)
+                    #setting the filename to exported filename so it is taken into consideration in the rotate function
+                    self.filename = self.filelocation+self.setFileName.get()+"."+self.file_extension
+                    
+                    msg = CTkMessagebox(title="SUCCESS!", message="Video successfully saved.", icon="check", option_1="Open",  option_2="OK", fade_in_duration=1)
+                    if msg.get()=="Open":
+                        self.open(self.filename)
                 print("Breaking bad")
                 break
             strippedOut = output.strip()
@@ -403,8 +568,8 @@ class App():
                 self.terminalOutputDisplay.insert(tk.END, strippedOut + "\n")
                 self.terminalOutputDisplay.configure(state='disabled')
                 self.terminalOutputDisplay.see(tk.END)
-            self.root.after(100) # update every 100ms
-            # time.sleep(0.1)
+            # self.root.after(100)  update every 100ms
+            time.sleep(0.1)
 
     
     
